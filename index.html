@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Lanchonete</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial,sans-serif;
+}
+
+body{
+  background:#f5f0e6;
+  color:#000;
+}
+
+.login-screen{
+  position:fixed;
+  inset:0;
+  background:#e9dfcf;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+
+.login-box{
+  background:#fff;
+  width:90%;
+  max-width:350px;
+  padding:30px;
+  border-radius:20px;
+}
+
+.login-box h1{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.login-box input{
+  width:100%;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+
+.topbar{
+  background:#fff;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.menu-btn{
+  font-size:30px;
+  cursor:pointer;
+}
+
+.admin-menu{
+  position:fixed;
+  top:0;
+  right:-320px;
+  width:320px;
+  height:100%;
+  background:#fff;
+  padding:20px;
+  transition:0.3s;
+  z-index:999;
+  overflow:auto;
+}
+
+.admin-menu.active{
+  right:0;
+}
+
+.menu-item{
+  background:#f1f5f9;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.main{
+  padding:15px;
+}
+
+.btn{
+  background:#2563eb;
+  color:#fff;
+  border:none;
+  padding:12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.btn-full{
+  width:100%;
+  margin-bottom:20px;
+}
+
+.btn-avulso {
+  background: #0284c7;
+  color: #fff;
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+.input-pesquisa{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid #ccc;
+  margin-bottom:20px;
+}
+
+.mesas{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+
+.mesa-card{
+  background:#fff;
+  padding:20px;
+  border-radius:18px;
+}
+
+.item-produto{
+  background:#f1f5f9;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+}
+
+.produto-card{
+  background:#f8fafc;
+  padding:15px;
+  border-radius:15px;
+  margin-bottom:15px;
+}
+
+.produto-acoes{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.categoria-title{
+  background:#000;
+  color:#fff;
+  padding:12px;
+  border-radius:12px;
+  margin:20px 0 15px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.controle-qtd{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
+}
+
+.botoes-qtd{
+  display:flex;
+  gap:5px;
+}
+
+.qtd-numero{
+  font-size:18px;
+  font-weight:bold;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+
+.modal-content{
+  background:#fff;
+  width:90%;
+  max-width:450px;
+  max-height:90vh;
+  overflow:auto;
+  padding:20px;
+  border-radius:20px;
+}
+
+.relatorio-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.relatorio-table th, .relatorio-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.relatorio-table th {
+  background: #f1f5f9;
+  font-weight: bold;
+}
+
+.total-destaque {
+  font-size: 18px;
+  background: #e2e8f0;
+  font-weight: bold;
+}
+
+.filtro-data-container {
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 15px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filtro-data-container input[type="date"] {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 16px;
+}
+
+.caixa-fechamento-info {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+}
+.caixa-fechamento-info p {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+.input-pagamento-parcial {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid #cbd5e1;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  outline: none;
+}
+.input-pagamento-parcial:focus {
+  border-color: #2563eb;
+}
+.grid-botoes-pagamento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>Login</h1>
+    <input type="text" id="usuario" placeholder="Usu&aacute;rio">
+    <input type="password" id="senha" placeholder="Senha">
+    <button class="btn btn-full" onclick="fazerLogin()">Entrar</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <h2 id="tituloTop">Mesas</h2>
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+</div>
+
+<div class="admin-menu" id="adminMenu">
+  <div class="menu-item id-admin" onclick="adicionarGarcom()">Adicionar Gar&ccedil;om</div>
+  <div class="menu-item id-admin" onclick="abrirListaGarcons()">Gar&ccedil;&otilde;es Cadastrados</div>
+  <div class="menu-item id-admin" onclick="adicionarProdutoAdmin()">Adicionar Produto</div>
+  <div class="menu-item id-admin" onclick="abrirListaProdutos()">Produtos Cadastrados</div>
+  <div class="menu-item id-admin" style="background: #16a34a; color: white;" onclick="abrirMesasFechadasDoDia()">Mesas Fechadas do Dia</div>
+  <div class="menu-item id-admin" style="background: #1e293b; color: white;" onclick="abrirRelatorios()">Relat&oacute;rios de Vendas</div>
+  <div class="menu-item" style="background: #dc2626; color: white;" onclick="fazerLogout()">Sair / Trocar Usu&aacute;rio</div>
+  <div class="menu-item" onclick="fecharMenu()">Fechar Menu</div>
+</div>
+
+<div class="main">
+  <button class="btn btn-full" onclick="abrirMesa()">+ Abrir Mesa</button>
+  <input type="text" id="pesquisaMesa" class="input-pesquisa" placeholder="Pesquisar mesa ou cliente..." onkeyup="renderizarMesas()"/>
+  <div class="mesas" id="listaMesas"></div>
+</div>
+
+<div class="modal" id="modalGerenciamento">
+  <div class="modal-content">
+    <h2 id="modalGerenciamentoTitulo">Selecionar</h2>
+    <div id="containerBotaoAvulso"></div>
+    <input type="text" id="pesquisaModal" class="input-pesquisa" placeholder="Pesquisar produto ou categoria..." onkeyup="filtrarItensModal()"/>
+    <div id="modalGerenciamentoConteudo"></div>
+    <br>
+    <button class="btn btn-full" onclick="fecharModalGerenciamento()">Voltar</button>
+  </div>
+</div>
+
+<script>
+// --- CONFIGURAÇÃO DO SEU FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyBmyN-rD4JDgwcZeP_pKvS",
+  authDomain: "lanchonetedocampo.firebaseapp.com",
+  databaseURL: "https://lanchonetedocampo-default-rtdb.firebaseio.com/",
+  projectId: "lanchonetedocampo",
+  storageBucket: "lanchonetedocampo.appspot.com",
+  messagingSenderId: "594623312303"
+};
+
+// Inicializa o Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// --- ESTADO LOCAL SINCRONIZADO ---
+let garcons = [];
+let produtos = [];
+let mesas = [];
+let historicoVendas = [];
+let logMesasFechadas = [];
+
+let mesaSelecionada = null;
+let quantidadeTemp = {};
+let mesasAbertas = {};
+let usuarioLogado = null;
+let contextoModalAtivo = '';
+
+// --- CONTROLE CORRIGIDO DO BOTÃO VOLTAR DO CELULAR (BLINDADO PARA IPHONE) ---
+function gerenciarEstadoHistorico() {
+  try { history.pushState({ modalAberto: true }, ""); } catch(e) {}
+}
+
+window.addEventListener("popstate", function (event) {
+  let modalPagamento = document.getElementById('modalPagamentoContainer');
+  if (modalPagamento) {
+    modalPagamento.remove();
+  }
+  
+  document.getElementById('modalGerenciamento').style.display = 'none';
+  document.getElementById('adminMenu').classList.remove('active');
+  contextoModalAtivo = '';
+  
+  mesasAbertas = {};
+  renderizarMesas();
+  
+  gerenciarEstadoHistorico();
+});
+
+gerenciarEstadoHistorico();
+
+// --- ESCUTAR ALTERAÇÕES DO FIREBASE EM TEMPO REAL ---
+database.ref('garcons').on('value', snapshot => {
+  const data = snapshot.val();
+  garcons = data ? Object.values(data) : [{ usuario:'bruno', senha:'200985' }];
+  if (!garcons.find(g => g.usuario.toLowerCase() === 'bruno')) {
+    garcons.unshift({ usuario:'bruno', senha:'200985' });
+  }
+});
+
+database.ref('produtos').on('value', snapshot => {
+  const data = snapshot.val();
+  produtos = data ? Object.values(data) : [];
+  if(contextoModalAtivo === 'produtos') abrirListaProdutos();
+  if(contextoModalAtivo === 'pedido') renderizarProdutosMesa(document.getElementById('pesquisaModal').value.toLowerCase());
+});
+
+database.ref('mesas').on('value', snapshot => {
+  const data = snapshot.val();
+  mesas = data ? Object.values(data) : [];
+  renderizarMesas();
+});
+
+database.ref('vendas').on('value', snapshot => {
+  const data = snapshot.val();
+  historicoVendas = data ? Object.values(data) : [];
+  if(contextoModalAtivo === 'relatorios') abrirRelatorios(document.getElementById('inputDataFiltro')?.value);
+});
+
+database.ref('log_mesas_fechadas').on('value', snapshot => {
+  const data = snapshot.val();
+  logMesasFechadas = data ? Object.values(data) : [];
+  if(contextoModalAtivo === 'mesas_fechadas') abrirMesasFechadasDoDia(document.getElementById('inputDataFiltroFechadas')?.value);
+});
+
+function sincronizar(caminho, dados) {
+  database.ref(caminho).set(dados);
+}
+
+// --- AUTENTICAÇÃO ---
+function fazerLogin(){
+  let usuario = document.getElementById('usuario').value.trim();
+  let senha = document.getElementById('senha').value;
+  let login = garcons.find(g => g.usuario.toLowerCase() === usuario.toLowerCase() && g.senha === senha);
+  if(login){
+    usuarioLogado = login.usuario;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('tituloTop').innerText = `Mesas (${usuarioLogado})`;
+    configurarMenuAcesso();
+  }else{ alert('Login inválido'); }
+}
+
+function configurarMenuAcesso() {
+  let itensAdmin = document.querySelectorAll('.id-admin');
+  let display = usuarioLogado.toLowerCase() === 'bruno' ? 'block' : 'none';
+  itensAdmin.forEach(el => el.style.display = display);
+}
+
+function fazerLogout() {
+  if(confirm("Deseja sair?")) {
+    usuarioLogado = null;
+    fecharMenu();
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+}
+
+// --- REMOVER MESA ---
+function deletarMesaPorEngano(index) {
+  let mesa = mesas[index];
+  let temItens = mesa.itens && mesa.itens.length > 0;
+  
+  let mensagem = `Tem certeza que deseja REMOVER e EXCLUIR a ${mesa.mesa} (${mesa.cliente})?`;
+  if(temItens) {
+    mensagem = `⚠️ ATENÇÃO: Esta mesa possui itens lançados!\n\n` + mensagem;
+  }
+  
+  if(confirm(mensagem)) {
+    mesas.splice(index, 1);
+    mesasAbertas = {}; 
+    sincronizar('mesas', mesas);
+    alert('Mesa removida com sucesso!');
+  }
+}
+
+function toggleMenu(){ 
+  let menu = document.getElementById('adminMenu');
+  menu.classList.toggle('active');
+  if(menu.classList.contains('active')) {
+    gerenciarEstadoHistorico();
+  }
+}
+function fecharMenu(){ document.getElementById('adminMenu').classList.remove('active'); }
+
+function fecharModalGerenciamento(){
+  document.getElementById('modalGerenciamento').style.display = 'none';
+  document.getElementById('containerBotaoAvulso').innerHTML = '';
+  document.getElementById('pesquisaModal').value = '';
+  document.getElementById('pesquisaModal').style.display = 'block';
+  contextoModalAtivo = '';
+}
+
+function filtrarItensModal(){
+  let pesquisa = document.getElementById('pesquisaModal').value.toLowerCase();
+  if (contextoModalAtivo === 'pedido') {
+    renderizarProdutosMesa(pesquisa);
+  } else if (contextoModalAtivo === 'produtos') {
+    abrirListaProdutos(pesquisa);
+  } else if (contextoModalAtivo === 'garcons') {
+    let cards = document.querySelectorAll('#modalGerenciamentoConteudo .produto-card');
+    cards.forEach(card => {
+      card.style.display = card.innerText.toLowerCase().includes(pesquisa) ? 'block' : 'none';
+    });
+  }
+}
+
+// --- GERENCIAMENTO DE GARÇONS ---
+function adicionarGarcom(){
+  if(usuarioLogado.toLowerCase() !== 'bruno') return;
+  let usuario = prompt('Nome do Usuário:');
+  let senha = prompt('Senha:');
+  if(usuario && senha) {
+    garcons.push({ usuario: usuario.trim(), senha });
+    sincronizar('garcons', garcons);
+    alert('Garçom cadastrado!');
+    if(contextoModalAtivo === 'garcons') abrirListaGarcons();
+  }
+}
+
+function abrirListaGarcons(){
+  contextoModalAtivo = 'garcons';
+  gerenciarEstadoHistorico();
+  document.getElementById('modalGerenciamentoTitulo').innerText = 'Garçons';
+  let conteudo = document.getElementById('modalGerenciamentoConteudo');
+  conteudo.innerHTML = '';
+  garcons.forEach((g, i) => {
+    conteudo.innerHTML += `
+      <div class="produto-card">
+        <h3>${g.usuario}</h3>
+        ${g.usuario.toLowerCase() !== 'bruno' ? `<button class="btn" style="background:#dc2626;" onclick="removerGarcom(${i})">Remover</button>` : ''}
+      </div>`;
+  });
+  document.getElementById('modalGerenciamento').style.display = 'flex';
+}
+
+function removerGarcom(i){
+  if(confirm("Remover este garçom?")) { 
+    garcons.splice(i,1); 
+    sincronizar('garcons', garcons); 
+    abrirListaGarcons(); 
+  }
+}
+
+// --- GERENCIAMENTO DE PRODUTOS ---
+function adicionarProdutoAdmin(){
+  if(usuarioLogado.toLowerCase() !== 'bruno') return;
+  let nome = prompt('Nome do produto:');
+  let category = prompt('Categoria:');
+  let valorInput = prompt('Valor (R$):');
+  let valor = parseFloat(valorInput ? valorInput.replace(',', '.') : 0);
+
+  if(nome && category && !isNaN(valor)) {
+    produtos.push({ nome: nome.trim(), categoria: category.trim(), valor });
+    sincronizar('produtos', produtos);
+    alert('Produto salvo!');
+    if(contextoModalAtivo === 'produtos') abrirListaProdutos();
+  }
+}
+
+function abrirListaProdutos(filtro = ''){
+  if(usuarioLogado.toLowerCase() !== 'bruno') return;
+  contextoModalAtivo = 'produtos';
+  gerenciarEstadoHistorico();
+  document.getElementById('modalGerenciamentoTitulo').innerText = 'Gerenciar Cardápio';
+  let conteudo = document.getElementById('modalGerenciamentoConteudo');
+  conteudo.innerHTML = '';
+
+  let categories = [...new Set(produtos.map(p => p.categoria))];
+  categories.forEach(cat => {
+    let itensFiltrados = produtos.filter(p => 
+      p.categoria === cat && (p.nome.toLowerCase().includes(filtro) || p.categoria.toLowerCase().includes(filtro))
+    );
+    if (itensFiltrados.length > 0) {
+      conteudo.innerHTML += `<div class="categoria-title">${cat}</div>`;
+      itensFiltrados.forEach(prod => {
+        let idx = produtos.indexOf(prod);
+        conteudo.innerHTML += `
+          <div class="produto-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div><h3>${prod.nome}</h3><p>R$ ${prod.valor.toFixed(2)}</p></div>
+              <div style="display:flex; gap:5px;">
+                <button class="btn" style="background:#f59e0b;" onclick="editarProduto(${idx})">📝</button>
+                <button class="btn" style="background:#dc2626;" onclick="removerProduto(${idx})">🗑️</button>
+              </div>
+            </div>
+          </div>`;
+      });
+    }
+  });
+  document.getElementById('modalGerenciamento').style.display = 'flex';
+}
+
+function editarProduto(index){
+  let p = produtos[index];
+  let nome = prompt('Novo Nome:', p.nome);
+  let category = prompt('Nova Categoria:', p.categoria);
+  let valorInput = prompt('Novo Valor:', p.valor);
+  let valor = parseFloat(valorInput ? String(valorInput).replace(',', '.') : 0);
+  if(nome && category && !isNaN(valor)) {
+    produtos[index] = { nome: nome.trim(), categoria: category.trim(), valor };
+    sincronizar('produtos', produtos);
+    abrirListaProdutos();
+  }
+}
+
+function removerProduto(index){
+  if(confirm("Deseja remover este produto?")) { 
+    produtos.splice(index,1); 
+    sincronizar('produtos', produtos); 
+    abrirListaProdutos(); 
+  }
+}
+
+// --- NOVO: ABA PARA VER MESAS FECHADAS DO DIA ---
+function abrirMesasFechadasDoDia(dataAlvo = null) {
+  if(usuarioLogado.toLowerCase() !== 'bruno') return;
+  contextoModalAtivo = 'mesas_fechadas';
+  gerenciarEstadoHistorico();
+  fecharMenu();
+  if (!dataAlvo) dataAlvo = new Date().toISOString().split('T')[0];
+
+  let conteudo = document.getElementById('modalGerenciamentoConteudo');
+  document.getElementById('modalGerenciamentoTitulo').innerText = 'Mesas Fechadas';
+  document.getElementById('pesquisaModal').style.display = 'none';
+
+  let filtradas = logMesasFechadas.filter(m => m.data === dataAlvo);
+  let totalDoDia = filtradas.reduce((acc, atual) => acc + atual.valor, 0);
+
+  let linhasHtml = filtradas.length > 0 
+    ? filtradas.map(m => `<tr><td>⏰ ${m.hora}</td><td><strong>${m.identificador}</strong><br><small style="color:#666;">Cliente: ${m.cliente}</small></td><td>R$ ${m.valor.toFixed(2)}</td></tr>`).join('')
+    : `<tr><td colspan="3" style="text-align:center; color:#94a3b8;">Nenhuma mesa fechada nesta data.</td></tr>`;
+
+  conteudo.innerHTML = `
+    <div class="filtro-data-container">
+      <input type="date" id="inputDataFiltroFechadas" value="${dataAlvo}">
+      <button class="btn" onclick="abrirMesasFechadasDoDia(document.getElementById('inputDataFiltroFechadas').value)">Filtrar</button>
+    </div>
+    <table class="relatorio-table">
+      <thead>
+        <tr><th>Hora</th><th>Mesa / Cliente</th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        ${linhasHtml}
+        <tr class="total-destaque"><td colspan="2">TOTAL DO DIA</td><td>R$ ${totalDoDia.toFixed(2)}</td></tr>
+      </tbody>
+    </table><br>
+    <button class="btn btn-full" style="background:#dc2626;" onclick="if(confirm('Deseja limpar o histórico visual de mesas fechadas? (Não altera o caixa financeiro)')){logMesasFechadas=[];sincronizar('log_mesas_fechadas', logMesasFechadas);abrirMesasFechadasDoDia();}">Zerar Histórico de Mesas</button>
+  `;
+  document.getElementById('modalGerenciamento').style.display = 'flex';
+}
+
+// --- RELATÓRIOS ---
+function abrirRelatorios(dataAlvo = null) {
+  if(usuarioLogado.toLowerCase() !== 'bruno') return;
+  contextoModalAtivo = 'relatorios';
+  gerenciarEstadoHistorico();
+  fecharMenu();
+  if (!dataAlvo) dataAlvo = new Date().toISOString().split('T')[0];
+
+  let totais = { 'Dinheiro':0, 'PIX':0, 'Cartão Crédito':0, 'Cartão Débito':0 };
+  historicoVendas.forEach(v => { if(v.data === dataAlvo) totais[v.tipo] = (totais[v.tipo] || 0) + v.valor; });
+
+  let totalGeral = Object.values(totais).reduce((a, b) => a + b, 0);
+  let conteudo = document.getElementById('modalGerenciamentoConteudo');
+  document.getElementById('modalGerenciamentoTitulo').innerText = 'Relatório de Vendas';
+  document.getElementById('pesquisaModal').style.display = 'none';
+
+  conteudo.innerHTML = `
+    <div class="filtro-data-container">
+      <input type="date" id="inputDataFiltro" value="${dataAlvo}">
+      <button class="btn" onclick="abrirRelatorios(document.getElementById('inputDataFiltro').value)">Filtrar</button>
+    </div>
+    <table class="relatorio-table">
+      <tr><td>💵 Dinheiro</td><td>R$ ${totais['Dinheiro'].toFixed(2)}</td></tr>
+      <tr><td>📱 PIX</td><td>R$ ${totais['PIX'].toFixed(2)}</td></tr>
+      <tr><td>💳 Crédito</td><td>R$ ${totais['Cartão Crédito'].toFixed(2)}</td></tr>
+      <tr><td>💳 Débito</td><td>R$ ${totais['Cartão Débito'].toFixed(2)}</td></tr>
+      <tr class="total-destaque"><td>TOTAL</td><td>R$ ${totalGeral.toFixed(2)}</td></tr>
+    </table><br>
+    <button class="btn btn-full" style="background:#dc2626;" onclick="if(confirm('Zerar tudo?')){historicoVendas=[];sincronizar('vendas', historicoVendas);abrirRelatorios();}">Zerar Histórico</button>`;
+  document.getElementById('modalGerenciamento').style.display = 'flex';
+}
+
+// --- OPERAÇÃO DE MESAS ---
+function abrirMesa(){
+  let cliente = prompt('Nome do cliente:');
+  if(cliente) {
+    let novoIndex = mesas.length;
+    mesas.push({ mesa: 'Mesa ' + (novoIndex + 1), cliente, total:0, totalPago:0, itens:[] });
+    
+    mesasAbertas = {};
+    mesasAbertas[novoIndex] = true;
+    
+    sincronizar('mesas', mesas);
+    
+    setTimeout(() => {
+      adicionarProduto(novoIndex);
+    }, 100);
+  }
+}
+
+function toggleMesa(index){ 
+  mesasAbertas = {}; 
+  mesasAbertas[index] = true; 
+  gerenciarEstadoHistorico(); 
+  renderizarMesas(); 
+}
+function fecharVisualMesa(){ mesasAbertas = {}; renderizarMesas(); }
+
+function adicionarProduto(index){
+  mesaSelecionada = index;
+  contextoModalAtivo = 'pedido';
+  gerenciarEstadoHistorico();
+  document.getElementById('modalGerenciamentoTitulo').innerText = 'Adicionar Item';
+  
+  document.getElementById('containerBotaoAvulso').innerHTML = `
+    <button class="btn btn-full btn-avulso" onclick="adicionarItemAvulsoMesa()">➕ Adicionar Item Avulso</button>
+  `;
+  
+  renderizarProdutosMesa();
+}
+
+function adicionarItemAvulsoMesa() {
+  let nomeAvulso = prompt("Nome do produto avulso (ex: Acréscimo de Bacon):");
+  if(!nomeAvulso) return;
+  
+  let valorInput = prompt("Valor do item avulso (R$):");
+  if(!valorInput) return;
+  
+  let valorAvulso = parseFloat(valorInput.replace(',', '.'));
+  if(isNaN(valorAvulso) || valorAvulso <= 0) {
+    alert("Valor inválido!");
+    return;
+  }
+  
+  let mesa = mesas[mesaSelecionada];
+  if(!mesa.itens) mesa.itens = [];
+  
+  mesa.itens.push({
+    nome: `[AVULSO] ${nomeAvulso.trim()}`,
+    valor: valorAvulso,
+    quantidade: 1,
+    subtotal: valorAvulso
+  });
+  
+  mesa.total += valorAvulso;
+  
+  sincronizar('mesas', mesas);
+  fecharModalGerenciamento();
+  alert("Item avulso adicionado com sucesso!");
+}
+
+function renderizarProdutosMesa(filtro = ''){
+  let conteudo = document.getElementById('modalGerenciamentoConteudo');
+  conteudo.innerHTML = '';
+  let categories = [...new Set(produtos.map(p => p.categoria))];
+  categories.forEach(cat => {
+    let itensFiltrados = produtos.filter(p => 
+      p.categoria === cat && (p.nome.toLowerCase().includes(filtro) || p.categoria.toLowerCase().includes(filtro))
+    );
+    if (itensFiltrados.length > 0) {
+      conteudo.innerHTML += `<div class="categoria-title">${cat}</div>`;
+      itensFiltrados.forEach(prod => {
+        let pIdx = produtos.indexOf(prod);
+        if(!quantidadeTemp[pIdx]) quantidadeTemp[pIdx] = 1;
+        conteudo.innerHTML += `
+          <div class="produto-card">
+            <h3>${prod.nome}</h3><p>R$ ${prod.valor.toFixed(2)}</p>
+            <div class="produto-acoes">
+              <div class="controle-qtd">
+                <div class="qtd-numero" id="qtd-${pIdx}">${quantidadeTemp[pIdx]}</div>
+                <div class="botoes-qtd">
+                  <button class="btn" onclick="if(quantidadeTemp[${pIdx}]>1) {quantidadeTemp[${pIdx}]--; document.getElementById('qtd-${pIdx}').innerText=quantidadeTemp[${pIdx}]}">-</button>
+                  <button class="btn" onclick="quantidadeTemp[${pIdx}]++; document.getElementById('qtd-${pIdx}').innerText=quantidadeTemp[${pIdx}]">+</button>
+                </div>
+              </div>
+              <button class="btn" onclick="selecionarProduto(${pIdx})">Selecionar</button>
+            </div>
+          </div>`;
+      });
+    }
+  });
+  document.getElementById('modalGerenciamento').style.display = 'flex';
+}
+
+function selecionarProduto(pIdx){
+  let p = produtos[pIdx];
+  let qtd = quantity = quantidadeTemp[pIdx] || 1;
+  let mesa = mesas[mesaSelecionada];
+  if(!mesa.itens) mesa.itens = [];
+  
+  let item = mesa.itens.find(i => i.nome === p.nome);
+  if(item) { 
+    item.quantidade += qtd; 
+    item.subtotal = item.quantidade * item.valor; 
+  } else { 
+    mesa.itens.push({ nome: p.nome, valor: p.valor, House: p.valor, quantidade: qtd, subtotal: p.valor * qtd }); 
+  }
+  mesa.total += p.valor * qtd;
+  quantidadeTemp[pIdx] = 1; 
+  
+  sincronizar('mesas', mesas);
+  fecharModalGerenciamento();
+}
+
+function fecharMesa(index){
+  let mesa = mesas[index];
+  if (mesa.totalPago === undefined) { mesa.totalPago = 0; }
+  let saldoDevedor = mesa.total - mesa.totalPago;
+
+  let modal = document.createElement('div');
+  modal.id = "modalPagamentoContainer";
+  gerenciarEstadoHistorico();
+  
+  modal.innerHTML = `
+  <div style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
+    <div style="background:#fff; width:90%; max-width:400px; padding:20px; border-radius:20px;">
+      <h2>Fechar Conta - ${mesa.mesa}</h2>
+      <p style="color:#666; margin-bottom:15px;">Cliente: ${mesa.cliente}</p>
+      
+      <div class="caixa-fechamento-info">
+         <p><span>Total Consumido:</span> <span>R$ ${mesa.total.toFixed(2)}</span></p>
+         <p style="color: #16a34a;"><span>Total J&aacute; Pago:</span> <span>R$ ${mesa.totalPago.toFixed(2)}</span></p>
+         <p style="font-weight: bold; border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
+            <span>Saldo Restante:</span> <span>R$ ${saldoDevedor.toFixed(2)}</span>
+         </p>
+      </div>
+
+      <label style="display:block; margin-bottom:5px; font-weight:bold; font-size:14px;">Valor que o cliente vai pagar agora:</label>
+      <input type="number" id="inputValorParcial" class="input-pagamento-parcial" step="0.01" value="${saldoDevedor.toFixed(2)}" placeholder="0.00">
+
+      <p style="text-align:center; font-weight:bold; margin-bottom:10px; font-size:14px; color:#555;">Selecione a Forma de Pagamento:</p>
+      <div class="grid-botoes-pagamento">
+        <button class="btn" style="background:#16a34a;" onclick="receberPagamento('PIX', ${index})">PIX</button>
+        <button class="btn" style="background:#2563eb;" onclick="receberPagamento('Dinheiro', ${index})">Dinheiro</button>
+        <button class="btn" style="background:#f59e0b;" onclick="receberPagamento('Cart&atilde;o Cr&eacute;dito', ${index})">Cr&eacute;dito</button>
+        <button class="btn" style="background:#64748b;" onclick="receberPagamento('Cart&atilde;o D&eacute;bito', ${index})">D&eacute;bito</button>
+      </div>
+      
+      <button class="btn btn-full" style="background:#dc2626; margin-bottom:0;" onclick="document.getElementById('modalPagamentoContainer').remove()">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function receberPagamento(tipo, index){
+  let mesa = mesas[index];
+  if (mesa.totalPago === undefined) { mesa.totalPago = 0; }
+  let saldoDevedorAtual = mesa.total - mesa.totalPago;
+  
+  let inputValor = document.getElementById('inputValorParcial');
+  let valorPagoAgora = parseFloat(inputValor.value.replace(',', '.'));
+  
+  if(isNaN(valorPagoAgora) || valorPagoAgora <= 0) {
+    alert("Por favor, insira um valor v&aacute;lido de pagamento!");
+    return;
+  }
+  
+  if(parseFloat(valorPagoAgora.toFixed(2)) > parseFloat(saldoDevedorAtual.toFixed(2))) {
+    alert(`Valor inserido &eacute; maior do que o saldo devedor da mesa! O saldo restante &eacute; R$ ${saldoDevedorAtual.toFixed(2)}`);
+    return;
+  }
+
+  let resumenFinal = `Pagamento registrado!\nForma: ${tipo}\nValor Pago: R$ ${valorPagoAgora.toFixed(2)}`;
+  
+  if(tipo === 'Dinheiro') {
+    let dineroInput = prompt(`Valor do pagamento: R$ ${valorPagoAgora.toFixed(2)}\nQuanto em dinheiro o cliente te entregou?`, valorPagoAgora);
+    if(dineroInput === null) return;
+    let dinheiroEntregue = parseFloat(dineroInput.replace(',', '.'));
+    if(isNaN(dinheiroEntregue) || dinheiroEntregue < valorPagoAgora) { 
+      alert("Valor entregue em dinheiro &eacute; insuficiente para cobrir o valor informado!"); 
+      return; 
+    }
+    if (dinheiroEntregue > valorPagoAgora) {
+      resumenFinal += `\nRecebido: R$ ${dinheiroEntregue.toFixed(2)}\nTroco: R$ ${(dinheiroEntregue - valorPagoAgora).toFixed(2)}`;
+    }
+  }
+  
+  // Registra no fluxo financeiro normal do caixa
+  historicoVendas.push({ valor: valorPagoAgora, tipo, data: new Date().toISOString().split('T')[0] });
+  sincronizar('vendas', historicoVendas);
+
+  mesa.totalPago += valorPagoAgora;
+  let novoSaldoDevedor = mesa.total - mesa.totalPago;
+
+  if (parseFloat(novoSaldoDevedor.toFixed(2)) === 0) {
+    // NOVA LOGICA: Antes de deletar a mesa ativa, salva as informações básicas dela no log de mesas fechadas do dia
+    let agora = new Date();
+    let horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    logMesasFechadas.push({
+      identificador: mesa.mesa,
+      cliente: mesa.cliente,
+      valor: mesa.total,
+      data: agora.toISOString().split('T')[0],
+      hora: horaFormatada
+    });
+    sincronizar('log_mesas_fechadas', logMesasFechadas);
+
+    mesas.splice(index, 1);
+    mesasAbertas = {};
+    alert(`Mesa totalmente quitada!\n\n${resumenFinal}`);
+  } else {
+    alert(`Pagamento parcial recebido com sucesso!\n\n${resumenFinal}\n\nSaldo restante na mesa: R$ ${novoSaldoDevedor.toFixed(2)}`);
+  }
+  
+  sincronizar('mesas', mesas);
+  document.getElementById('modalPagamentoContainer').remove();
+}
+
+function alterarQuantidadeItem(mesaIdx, itemIdx, delta) {
+  let mesa = mesas[mesaIdx];
+  let item = mesa.itens[itemIdx];
+  item.quantidade += delta;
+  item.subtotal = item.quantidade * item.valor;
+  mesa.total += (delta * item.valor);
+  if(item.quantidade <= 0) { mesa.itens.splice(itemIdx, 1); }
+  sincronizar('mesas', mesas);
+}
+
+function renderizarMesas(){
+  let lista = document.getElementById('listaMesas');
+  if(!lista) return;
+  let pesquisa = document.getElementById('pesquisaMesa').value.toLowerCase();
+  lista.innerHTML = '';
+  
+  mesas.forEach((m, i) => {
+    if(!m.mesa.toLowerCase().includes(pesquisa) && !m.cliente.toLowerCase().includes(pesquisa)) return;
+    if(Object.values(mesasAbertas).includes(true) && !mesasAbertas[i]) return;
+    
+    let itensHtml = '';
+    let infosAdicionaisHtml = '';
+    
+    let pagoAteAgora = m.totalPago || 0;
+    let restanteCard = m.total - pagoAteAgora;
+
+    if (mesasAbertas[i]) {
+      infosAdicionaisHtml = `
+        <p style="margin-top: 5px; font-size:14px; color:#555;">Consumido: R$ ${m.total.toFixed(2)}</p>
+        ${pagoAteAgora > 0 ? `<p style="font-size:14px; color:#16a34a;">Pago Parcial: R$ ${pagoAteAgora.toFixed(2)}</p>` : ''}
+      `;
+      
+      if (m.itens) {
+        itensHtml = m.itens.map((it, idx) => `
+          <div class="item-produto">
+            <strong>${it.nome}</strong><br>
+            ${it.quantidade}x R$ ${it.valor.toFixed(2)} = R$ ${it.subtotal.toFixed(2)}
+            <div class="produto-acoes">
+              <button class="btn" onclick="alterarQuantidadeItem(${i}, ${idx}, -1)">-</button>
+              <button class="btn" onclick="alterarQuantidadeItem(${i}, ${idx}, 1)">+</button>
+            </div>
+          </div>`).join('');
+      }
+    }
+
+    lista.innerHTML += `
+      <div class="mesa-card">
+        <h3>${m.mesa} - ${m.cliente}</h3>
+        ${infosAdicionaisHtml}
+        <strong style="font-size:16px;">Total: R$ ${restanteCard.toFixed(2)}</strong><br><br>
+        <div class="produto-acoes">
+          ${mesasAbertas[i] 
+            ? `<button class="btn" onclick="adicionarProduto(${i})">+ Item</button>
+               <button class="btn" style="background:#16a34a;" onclick="fecharMesa(${i})">Fechar Mesa</button>
+               <button class="btn" style="background:#dc2626;" onclick="deletarMesaPorEngano(${i})">Remover Mesa</button>
+               <button class="btn" style="background:#64748b;" onclick="fecharVisualMesa()">Voltar</button>`
+            : `<button class="btn" onclick="toggleMesa(${i})">Abrir Detalhes</button>`
+          }
+        </div>
+        ${itensHtml}
+      </div>`;
+  });
+}
+</script>
+</body>
+</html>
