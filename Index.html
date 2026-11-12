@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#172554">
+<title>Sistema Lanchonete do Campo</title>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<style>
+:root{--navy:#172554;--blue:#2563eb;--green:#15803d;--bg:#f3f5f9;--ink:#172033;--muted:#64748b;--line:#e2e8f0}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:var(--bg);color:var(--ink);min-height:100vh}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0}
+.hidden{display:none!important}
+.login-screen{position:fixed;inset:0;z-index:5000;background:linear-gradient(135deg,#172554,#2563eb);display:flex;align-items:center;justify-content:center;padding:18px}
+.login-box{background:#fff;width:min(100%,380px);padding:28px;border-radius:20px;box-shadow:0 20px 60px #0003}
+.login-box h1{text-align:center;margin-bottom:8px;color:var(--navy)}
+.login-box p{text-align:center;color:var(--muted);margin-bottom:22px}
+.field{width:100%;padding:13px 14px;border:1px solid #cbd5e1;border-radius:10px;margin:7px 0 14px;background:#fff;min-width:0}
+.btn{padding:11px 15px;border-radius:10px;background:var(--blue);color:#fff;font-weight:700}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-full{width:100%}
+.btn-green{background:var(--green)}.btn-red{background:#dc2626}.btn-gray{background:#64748b}.btn-orange{background:#d97706}
+.app{min-height:100vh}
+.topbar{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:20}
+.brand{font-weight:800;color:var(--navy);font-size:18px}
+.top-actions{display:flex;align-items:center;gap:12px}
+.user-label{font-size:13px;color:var(--muted)}
+.menu-toggle{display:none;background:#eff6ff;color:var(--navy);padding:9px 12px;border-radius:9px;font-size:20px}
+.layout{display:flex;min-height:calc(100vh - 64px)}
+.sidebar{width:245px;flex:0 0 245px;background:var(--navy);padding:20px 14px;color:#fff}
+.sidebar h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#a5b4fc;margin:5px 10px 16px}
+.nav-btn{display:block;width:100%;text-align:left;background:transparent;color:#e2e8f0;padding:13px 12px;border-radius:10px;margin:4px 0;font-weight:600}
+.nav-btn:hover,.nav-btn.active{background:#ffffff20;color:#fff}
+.nav-btn.logout{color:#fecaca;margin-top:20px}
+.main{flex:1;min-width:0;padding:24px;max-width:1500px;margin:0 auto;width:100%}
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.page-head h1{font-size:25px;color:var(--navy)}
+.sub{color:var(--muted);font-size:14px;margin-top:5px}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.search{padding:12px 14px;border:1px solid #cbd5e1;border-radius:10px;min-width:220px}
+.legend{display:flex;gap:15px;flex-wrap:wrap;margin:4px 0 18px;color:var(--muted);font-size:13px}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+.tables-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:14px}
+.table-tile{min-height:130px;border-radius:16px;color:#fff;padding:16px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;box-shadow:0 5px 14px #0f172a12;transition:transform .15s}
+.table-tile:active{transform:scale(.97)}
+.table-tile.free{background:#16834a}.table-tile.busy{background:#2563a6}
+.table-tile strong{font-size:20px}.table-tile small{font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:18px}
+.panel h2{font-size:18px;color:var(--navy);margin-bottom:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+.stat small{color:var(--muted)}.stat strong{display:block;font-size:23px;margin-top:7px;color:var(--navy)}
+.modal{position:fixed;inset:0;background:#0f172a88;z-index:1000;display:none;align-items:center;justify-content:center;padding:14px}
+.modal.show{display:flex}
+.modal-box{background:#fff;width:min(100%,620px);max-height:92vh;overflow:auto;border-radius:18px;padding:20px}
+.modal-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
+.modal-head h2{color:var(--navy);font-size:21px}
+.close-x{background:#f1f5f9;border-radius:9px;padding:8px 11px;font-size:18px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.item-row{border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0}
+.item-row h3{font-size:15px}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:32px;height:32px;border-radius:8px;background:#eaf0ff;color:var(--navy);font-weight:bold}
+.total-box{background:#eff6ff;border-radius:12px;padding:15px;margin:14px 0}
+.total-box strong{font-size:25px;color:var(--navy)}
+.category{background:#eaf0ff;color:var(--navy);padding:10px;border-radius:9px;font-weight:800;margin:15px 0 8px}
+.table{width:100%;border-collapse:collapse;margin-top:12px}
+.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:14px}
+.table th{background:#f8fafc;color:#475569}
+.notice{padding:12px;border-radius:10px;background:#fff7ed;color:#9a3412;margin:10px 0}
+.empty{text-align:center;padding:30px;color:var(--muted)}
+@media(max-width:760px){
+ .topbar{height:58px;padding:0 13px}.brand{font-size:16px}.menu-toggle{display:block}
+ .layout{display:block}.sidebar{display:none;position:fixed;z-index:50;top:58px;bottom:0;left:0;width:min(82vw,290px);overflow:auto;box-shadow:10px 0 30px #0003}
+ .sidebar.open{display:block}.main{padding:16px 13px}
+ .page-head h1{font-size:22px}.tables-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .table-tile{min-height:118px;padding:12px 7px}.search{width:100%;min-width:0}
+ .modal-box{padding:16px}
+}
+@media(min-width:761px){.sidebar{display:block!important}}
+</style>
+</head>
+<body>
+<div class="login-screen" id="loginScreen">
+ <form class="login-box" onsubmit="event.preventDefault();login()">
+  <h1>Lanchonete do Campo</h1><p>Acesse seu painel</p>
+  <label>Usuário</label><input class="field" id="loginUser" autocomplete="username" required>
+  <label>Senha</label><input class="field" id="loginPass" type="password" autocomplete="current-password" required>
+  <button class="btn btn-full" type="submit">Entrar</button>
+  <p style="font-size:12px;margin:14px 0 0"></p>
+ </form>
+</div>
+<div class="app hidden" id="app">
+ <header class="topbar">
+  <div class="brand">🍽 LANCHONETE DO CAMPO</div>
+  <div class="top-actions"><span class="user-label" id="userLabel"></span><button class="menu-toggle" onclick="toggleSidebar()">☰</button></div>
+ </header>
+ <div class="layout">
+  <aside class="sidebar" id="sidebar">
+   <h3 id="menuCaption">Menu</h3>
+   <div id="adminNav">
+    <button class="nav-btn active" onclick="showPage('mesas')">▦ &nbsp; Painel de mesas</button>
+    <button class="nav-btn" onclick="manageTables()">＋ &nbsp; Adicionar mesas</button>
+    <button class="nav-btn" onclick="manageWaiters()">♙ &nbsp; Garçons</button>
+    <button class="nav-btn" onclick="manageProducts()">☷ &nbsp; Produtos e cardápio</button>
+    <button class="nav-btn" onclick="showReports()">▤ &nbsp; Relatórios de vendas</button>
+   </div>
+   <div id="waiterNav" class="hidden">
+    <button class="nav-btn active" onclick="showPage('mesas')">▦ &nbsp; Mesas</button>
+   </div>
+   <button class="nav-btn logout" onclick="logout()">↪ &nbsp; Sair / trocar usuário</button>
+  </aside>
+  <main class="main">
+   <section id="pageMesas">
+    <div class="page-head"><div><h1 id="pageTitle">Painel de mesas</h1><div class="sub" id="pageSubtitle">Selecione uma mesa para começar.</div></div><div class="toolbar"><input class="search" id="searchTable" placeholder="Pesquisar mesa ou cliente" oninput="renderTables()"></div></div>
+    <div class="legend"><span><i class="dot" style="background:#16834a"></i> Livre – abrir mesa</span><span><i class="dot" style="background:#2563a6"></i> Ocupada – adicionar pedidos</span></div>
+    <div class="tables-grid" id="tablesGrid"></div>
+   </section>
+   <section id="pageReports" class="hidden">
+    <div class="page-head"><div><h1>Relatórios de vendas</h1><div class="sub">Histórico de pagamentos e mesas encerradas.</div></div><button class="btn btn-gray" onclick="showPage('mesas')">Voltar às mesas</button></div>
+    <div class="toolbar"><input class="field" style="max-width:220px" type="date" id="reportDate" onchange="renderReports()"></div>
+    <div class="cards" id="reportStats"></div>
+    <div class="panel"><h2>Pagamentos registrados</h2><div id="reportRows"></div></div>
+   </section>
+  </main>
+ </div>
+</div>
+<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="close-x" onclick="closeModal()">✕</button></div><div id="modalBody"></div></div></div>
+
+<script>
+const firebaseConfig={
+ apiKey:"AIzaSyBmyN-rD4JDgwcZeP_pKvS",
+ authDomain:"lanchonetedocampo.firebaseapp.com",
+ databaseURL:"https://lanchonetedocampo-default-rtdb.firebaseio.com/",
+ projectId:"lanchonetedocampo",
+ storageBucket:"lanchonetedocampo.appspot.com",
+ messagingSenderId:"594623312303"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+let waiters=[],products=[],openTables=[],closedSales=[],payments=[],tableNumbers=[];
+let currentUser=null,currentRole=null,selectedTableKey=null,qtyTemp={};
+const $=id=>document.getElementById(id);
+const money=n=>(Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isAdmin=()=>currentRole==='admin';
+function listen(path,cb){db.ref(path).on('value',s=>cb(s.val()));}
+listen('garcons',v=>{waiters=v?Object.values(v):[{usuario:'bruno',senha:'200985',role:'admin'}];if(!waiters.some(x=>(x.usuario||'').toLowerCase()==='bruno'))waiters.unshift({usuario:'bruno',senha:'200985',role:'admin'});});
+listen('produtos',v=>{products=v?Object.values(v):[];});
+listen('mesas',v=>{openTables=v?Object.entries(v).map(([key,m])=>({...m,numero:Number(m.numero)||Number(String(m.mesa||'').match(/\d+/)?.[0])||0,_key:key})):[];renderTables();if(selectedTableKey)renderOrder();});
+listen('config/numeroMesas',v=>{let count=Number(v)||12;tableNumbers=Array.from({length:count},(_,i)=>i+1);renderTables();});
+listen('vendas',v=>{closedSales=v?Object.values(v):[];if(!$('pageReports').classList.contains('hidden'))renderReports();});
+listen('pagamentos',v=>{payments=v?Object.values(v):[];if(!$('pageReports').classList.contains('hidden'))renderReports();});
+function login(){
+ const u=$('loginUser').value.trim(),p=$('loginPass').value;
+ const found=waiters.find(x=>(x.usuario||'').toLowerCase()===u.toLowerCase()&&x.senha===p);
+ if(!found){alert('Usuário ou senha inválidos.');return;}
+ currentUser=found.usuario;currentRole=(found.role==='admin'||currentUser.toLowerCase()==='bruno')?'admin':'waiter';
+ localStorage.setItem('lanchonete_session',JSON.stringify({user:currentUser,role:currentRole}));
+ enterApp();
+}
+function enterApp(){
+ $('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');
+ $('userLabel').textContent=currentUser+' • '+(isAdmin()?'Caixa/Administrador':'Garçom');
+ $('adminNav').classList.toggle('hidden',!isAdmin());$('waiterNav').classList.toggle('hidden',isAdmin());
+ $('menuCaption').textContent=isAdmin()?'Administração':'Atendimento';
+ showPage('mesas');renderTables();
+}
+function logout(){localStorage.removeItem('lanchonete_session');currentUser=null;currentRole=null;$('app').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('loginPass').value='';}
+function toggleSidebar(){$('sidebar').classList.toggle('open');}
+function showPage(name){
+ $('pageMesas').classList.toggle('hidden',name!=='mesas');$('pageReports').classList.toggle('hidden',name!=='reports');
+ document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+ if(name==='mesas')renderTables();
+ if(name==='reports')renderReports();
+ $('sidebar').classList.remove('open');
+}
+function openModal(title,html){$('modalTitle').textContent=title;$('modalBody').innerHTML=html;$('modal').classList.add('show');}
+function closeModal(){$('modal').classList.remove('show');selectedTableKey=null;qtyTemp={};}
+function getOpenTable(number){return openTables.find(t=>Number(t.numero)===Number(number));}
+function renderTables(){
+ const grid=$('tablesGrid');if(!grid)return;
+ const q=($('searchTable')?.value||'').toLowerCase();grid.innerHTML='';
+ if(!tableNumbers.length)tableNumbers=Array.from({length:12},(_,i)=>i+1);
+ tableNumbers.forEach(num=>{
+  const t=getOpenTable(num),label=t?`${t.mesa||'Mesa '+num} ${t.cliente||''}`:`Mesa ${num}`;
+  if(q&&!label.toLowerCase().includes(q))return;
+  const tile=document.createElement('button');tile.className='table-tile '+(t?'busy':'free');
+  tile.innerHTML=`<strong>♧ Mesa ${String(num).padStart(2,'0')}</strong><small>${t?esc(t.cliente||'Ocupada'):'LIVRE'}</small><small>${t?money((Number(t.total)||0)-(Number(t.totalPago)||0)):'Toque para abrir'}</small>`;
+  tile.onclick=()=>t?openOrder(t._key):openFreeTable(num);
+  grid.appendChild(tile);
+ });
+ if(!grid.children.length)grid.innerHTML='<div class="empty">Nenhuma mesa encontrada.</div>';
+}
+function openFreeTable(num){
+ const html=`<label>Nome do cliente</label><input class="field" id="clientName" placeholder="Nome do cliente" maxlength="60"><div class="row"><button class="btn btn-green" onclick="confirmOpenTable(${num})">Abrir mesa</button><button class="btn btn-gray" onclick="closeModal()">Cancelar</button></div>`;
+ openModal('Abrir Mesa '+num,html);
+}
+async function confirmOpenTable(num){
+ const client=$('clientName').value.trim();if(!client){alert('Informe o nome do cliente.');return;}
+ if(getOpenTable(num)){alert('Esta mesa já está ocupada.');closeModal();return;}
+ const ref=db.ref('mesas').push();
+ await ref.set({numero:num,mesa:'Mesa '+num,cliente:client,total:0,totalPago:0,itens:[],abertaPor:currentUser,criadaEm:Date.now()});
+ closeModal();openOrder(ref.key);
+}
+function openOrder(key){selectedTableKey=key;renderOrder();$('modal').classList.add('show');}
+function renderOrder(){
+ const t=openTables.find(x=>x._key===selectedTableKey);if(!t){closeModal();return;}
+ const paid=Number(t.totalPago)||0,total=Number(t.total)||0,balance=Math.max(0,total-paid);
+ let rows=(t.itens||[]).map((it,i)=>`<div class="item-row"><div class="between"><div><h3>${esc(it.nome)}</h3><small>${Number(it.quantidade)} × ${money(it.valor)} = <b>${money(it.subtotal)}</b></small><div><small>Lançado por: ${esc(it.adicionadoPor||'—')}</small></div></div><div class="qty"><button onclick="changeItem(${i},-1)">−</button><b>${it.quantidade}</b><button onclick="changeItem(${i},1)">+</button></div></div></div>`).join('');
+ const adminButtons=isAdmin()?`<button class="btn btn-green" onclick="paymentScreen()">Receber pagamento / fechar mesa</button><button class="btn btn-red" onclick="cancelOpenTable()">Cancelar mesa</button>`:'';
+ $('modalTitle').textContent=`Mesa ${String(t.numero).padStart(2,'0')} • ${t.cliente}`;
+ $('modalBody').innerHTML=`<div class="between"><span>Cliente: <b>${esc(t.cliente)}</b></span><span class="dot" style="background:#2563a6"></span></div><div class="total-box"><div class="between"><span>Consumo total</span><b>${money(total)}</b></div><div class="between"><span>Já pago</span><b style="color:#15803d">${money(paid)}</b></div><div class="between"><b>Saldo restante</b><strong>${money(balance)}</strong></div></div><div class="row"><button class="btn" onclick="productPicker()">＋ Adicionar produtos</button><button class="btn btn-gray" onclick="closeModal()">Voltar</button>${adminButtons}</div><h3 style="margin-top:18px">Itens do pedido</h3>${rows||'<div class="empty">Nenhum produto lançado ainda.</div>'}`;
+}
+async function cancelOpenTable(){
+ if(!isAdmin())return;
+ const t=openTables.find(x=>x._key===selectedTableKey);
+ if(!t)return;
+ const hasItems=Array.isArray(t.itens)&&t.itens.length>0;
+ const hasPayments=(Number(t.totalPago)||0)>0;
+ if(hasItems||hasPayments){
+  alert('Esta mesa já possui pedidos ou pagamentos. Para evitar perda de informações, só é possível cancelar mesas sem itens e sem pagamentos.');
+  return;
+ }
+ const ok=confirm(`Tem certeza que deseja cancelar a abertura da Mesa ${t.numero} (${t.cliente})? A mesa ficará livre novamente.`);
+ if(!ok)return;
+ try{
+  await db.ref('mesas/'+t._key).remove();
+  closeModal();
+  alert('Abertura cancelada. A mesa está livre novamente.');
+ }catch(error){
+  console.error('Erro ao cancelar mesa:',error);
+  alert('Não foi possível cancelar a mesa. Verifique sua conexão com o Firebase e tente novamente.');
+ }
+}
+async function saveTable(t){const key=t._key;delete t._key;await db.ref('mesas/'+key).update(t);t._key=key;}
+async function changeItem(i,delta){
+ const t=openTables.find(x=>x._key===selectedTableKey);if(!t)return;
+ const item=t.itens[i];if(!item)return;
+ if(delta<0&&item.quantidade<=1){if(!confirm('Remover este produto do pedido?'))return;t.itens.splice(i,1);}
+ else{item.quantidade+=delta;item.subtotal=item.quantidade*item.valor;}
+ t.total=(t.itens||[]).reduce((s,x)=>s+x.subtotal,0);await saveTable(t);renderOrder();
+}
+function productPicker(){
+ const cats=[...new Set(products.map(p=>p.categoria||'Outros'))];
+ let html=`<input class="field" id="productSearch" placeholder="Pesquisar produto..." oninput="filterProducts()">`;
+ html+=`<div id="productList">${productListHtml(products)}</div><button class="btn btn-gray" onclick="renderOrder()">Voltar ao pedido</button>`;
+ $('modalTitle').textContent='Adicionar produtos';$('modalBody').innerHTML=html;
+}
+function productListHtml(list){
+ if(!list.length)return '<div class="empty">Nenhum produto cadastrado.</div>';
+ let html='';let cats=[...new Set(list.map(p=>p.categoria||'Outros'))];
+ cats.forEach(cat=>{html+=`<div class="category">${esc(cat)}</div>`;list.filter(p=>(p.categoria||'Outros')===cat).forEach(p=>{let idx=products.indexOf(p);html+=`<div class="item-row between"><div><b>${esc(p.nome)}</b><br><small>${money(p.valor)}</small></div><div class="qty"><button onclick="adjustTemp(${idx},-1)">−</button><b id="temp${idx}">${qtyTemp[idx]||1}</b><button onclick="adjustTemp(${idx},1)">＋</button><button class="btn" onclick="addProduct(${idx})">Adicionar</button></div></div>`;});});
+ return html;
+}
+function filterProducts(){let q=$('productSearch').value.toLowerCase();$('productList').innerHTML=productListHtml(products.filter(p=>(p.nome||'').toLowerCase().includes(q)||(p.categoria||'').toLowerCase().includes(q)));}
+function adjustTemp(i,d){qtyTemp[i]=Math.max(1,(qtyTemp[i]||1)+d);let el=$('temp'+i);if(el)el.textContent=qtyTemp[i];}
+async function addProduct(i){
+ const t=openTables.find(x=>x._key===selectedTableKey),p=products[i];if(!t||!p)return;
+ const q=qtyTemp[i]||1;t.itens=t.itens||[];
+ let item=t.itens.find(x=>x.nome===p.nome&&Number(x.valor)===Number(p.valor));
+ if(item){item.quantidade+=q;item.subtotal=item.quantidade*item.valor;item.adicionadoPor=currentUser;}
+ else t.itens.push({nome:p.nome,valor:Number(p.valor),quantidade:q,subtotal:Number(p.valor)*q,adicionadoPor:currentUser});
+ t.total=t.itens.reduce((s,x)=>s+x.subtotal,0);qtyTemp[i]=1;await saveTable(t);productPicker();
+}
+function manageTables(){
+ const current=tableNumbers.length||12;
+ openModal('Gerenciar mesas',`<p>Quantidade atual de mesas: <b>${current}</b></p><label>Nova quantidade total de mesas</label><input class="field" id="tableCount" type="number" min="${current}" max="200" value="${current}"><p class="sub">Mesas ocupadas não serão removidas. Para evitar perda de pedidos, só é permitido aumentar a quantidade por aqui.</p><button class="btn" onclick="saveTableCount()">Salvar quantidade</button>`);
+}
+async function saveTableCount(){let n=Number($('tableCount').value);if(!Number.isInteger(n)||n<tableNumbers.length||n>200){alert('Informe uma quantidade válida, igual ou maior que a atual.');return;}await db.ref('config/numeroMesas').set(n);closeModal();}
+function manageWaiters(){
+ let html=`<button class="btn" onclick="newWaiter()">＋ Cadastrar garçom</button>`;
+ html+=waiters.filter(w=>(w.usuario||'').toLowerCase()!=='bruno').map(w=>`<div class="item-row between"><div><b>${esc(w.usuario)}</b><br><small>Garçom</small></div><button class="btn btn-red" onclick="removeWaiter('${encodeURIComponent(w.usuario)}')">Remover</button></div>`).join('');
+ openModal('Garçons cadastrados',html);
+}
+async function newWaiter(){let u=prompt('Nome de usuário do garçom:');if(!u)return;let s=prompt('Senha:');if(!s)return;if(waiters.some(w=>(w.usuario||'').toLowerCase()===u.trim().toLowerCase())){alert('Usuário já cadastrado.');return;}waiters.push({usuario:u.trim(),senha:s,role:'waiter'});await db.ref('garcons').set(waiters);manageWaiters();}
+async function removeWaiter(encoded){let u=decodeURIComponent(encoded);if(!confirm('Remover o garçom '+u+'?'))return;waiters=waiters.filter(w=>w.usuario!==u);await db.ref('garcons').set(waiters);manageWaiters();}
+function manageProducts(){
+ let html=`<button class="btn" onclick="newProduct()">＋ Adicionar produto</button>`;
+ html+=products.map((p,i)=>`<div class="item-row"><div class="between"><div><b>${esc(p.nome)}</b><br><small>${esc(p.categoria)} • ${money(p.valor)}</small></div><div class="row"><button class="btn btn-orange" onclick="editProduct(${i})">Editar</button><button class="btn btn-red" onclick="deleteProduct(${i})">Excluir</button></div></div></div>`).join('');
+ openModal('Produtos e cardápio',html);
+}
+async function newProduct(){let n=prompt('Nome do produto:');if(!n)return;let c=prompt('Categoria:');if(!c)return;let v=Number(prompt('Preço (ex.: 25,00):','0')?.replace(',','.'));if(!Number.isFinite(v)||v<0){alert('Preço inválido.');return;}products.push({nome:n.trim(),categoria:c.trim(),valor:v});await db.ref('produtos').set(products);manageProducts();}
+async function editProduct(i){let p=products[i];let n=prompt('Nome:',p.nome);if(n===null)return;let c=prompt('Categoria:',p.categoria);if(c===null)return;let v=Number(prompt('Preço:',p.valor)?.replace(',','.'));if(!n.trim()||!c.trim()||!Number.isFinite(v)||v<0){alert('Dados inválidos.');return;}products[i]={...p,nome:n.trim(),categoria:c.trim(),valor:v};await db.ref('produtos').set(products);manageProducts();}
+async function deleteProduct(i){if(!confirm('Excluir '+products[i].nome+'?'))return;products.splice(i,1);await db.ref('produtos').set(products);manageProducts();}
+function paymentScreen(){
+ if(!isAdmin())return;
+ const t=openTables.find(x=>x._key===selectedTableKey);if(!t)return;
+ let balance=Math.max(0,(Number(t.total)||0)-(Number(t.totalPago)||0));
+ $('modalTitle').textContent='Pagamento • '+t.mesa;
+ $('modalBody').innerHTML=`<div class="total-box"><div class="between"><span>Consumo total</span><b>${money(t.total)}</b></div><div class="between"><span>Já pago</span><b>${money(t.totalPago||0)}</b></div><div class="between"><b>Saldo restante</b><strong>${money(balance)}</strong></div></div><label>Valor que será pago agora</label><input class="field" id="payValue" type="number" min="0.01" step="0.01" value="${balance.toFixed(2)}" oninput="calculateChange()"><label>Forma de pagamento</label><select class="field" id="payType"><option>PIX</option><option>Dinheiro</option><option>Cartão Crédito</option><option>Cartão Débito</option></select><div id="cashArea" class="hidden"><label>Valor recebido em dinheiro</label><input class="field" id="cashReceived" type="number" min="0" step="0.01" oninput="calculateChange()"><div class="total-box">Troco: <strong id="changeValue">${money(0)}</strong></div></div><div class="row"><button class="btn" onclick="confirmPayment()">Registrar pagamento</button><button class="btn btn-gray" onclick="renderOrder()">Cancelar</button></div>`;
+ $('payType').onchange=()=>{$('cashArea').classList.toggle('hidden',$('payType').value!=='Dinheiro');if($('payType').value==='Dinheiro')calculateChange();};
+}
+function calculateChange(){let due=Number($('payValue').value)||0,got=Number($('cashReceived').value)||0;$('changeValue').textContent=money(Math.max(0,got-due));}
+async function confirmPayment(){
+ if(!isAdmin())return;
+ const t=openTables.find(x=>x._key===selectedTableKey);if(!t)return;
+ const amount=Math.round(Number($('payValue').value)*100)/100,type=$('payType').value;
+ const balance=Math.round(((Number(t.total)||0)-(Number(t.totalPago)||0))*100)/100;
+ if(!Number.isFinite(amount)||amount<=0||amount>balance){alert('Informe um valor válido, até o saldo restante.');return;}
+ let received=amount,change=0;
+ if(type==='Dinheiro'){received=Math.round(Number($('cashReceived').value)*100)/100;if(!Number.isFinite(received)||received<amount){alert('O valor recebido precisa cobrir o pagamento.');return;}change=Math.round((received-amount)*100)/100;}
+ const payment={mesa:t.mesa,numero:t.numero,cliente:t.cliente,valor:amount,tipo:type,recebido:received,troco:change,data:new Date().toLocaleDateString('sv-SE'),hora:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),registradoPor:currentUser,criadoEm:Date.now()};
+ await db.ref('pagamentos').push(payment);
+ t.totalPago=Math.round(((Number(t.totalPago)||0)+amount)*100)/100;
+ const newBalance=Math.round((Number(t.total)-t.totalPago)*100)/100;
+ if(newBalance<=0){
+  const sale={...payment,valor:Number(t.total),totalPago:t.totalPago,itens:t.itens||[],data:payment.data,hora:payment.hora};
+  await db.ref('vendas').push(sale);
+  await db.ref('log_mesas_fechadas').push({identificador:t.mesa,cliente:t.cliente,valor:Number(t.total),data:payment.data,hora:payment.hora});
+  await db.ref('mesas/'+t._key).remove();
+  closeModal();alert('Mesa fechada!'+(change?'\nTroco: '+money(change):''));
+ }else{
+  await db.ref('mesas/'+t._key).update({totalPago:t.totalPago});
+  alert('Pagamento parcial registrado. Saldo restante: '+money(newBalance)+(change?'\nTroco: '+money(change):''));
+  renderOrder();
+ }
+}
+function showReports(){showPage('reports');$('reportDate').value=new Date().toLocaleDateString('sv-SE');renderReports();}
+function renderReports(){
+ if(!isAdmin())return;
+ const date=$('reportDate').value||new Date().toLocaleDateString('sv-SE');
+ const dayPayments=payments.filter(p=>p.data===date),sum=dayPayments.reduce((s,p)=>s+Number(p.valor||0),0);
+ $('reportStats').innerHTML=`<div class="stat"><small>Pagamentos registrados</small><strong>${dayPayments.length}</strong></div><div class="stat"><small>Total recebido no dia</small><strong>${money(sum)}</strong></div>`;
+ $('reportRows').innerHTML=dayPayments.length?`<table class="table"><thead><tr><th>Hora</th><th>Mesa / Cliente</th><th>Forma</th><th>Valor</th></tr></thead><tbody>${dayPayments.sort((a,b)=>(a.criadoEm||0)-(b.criadoEm||0)).map(p=>`<tr><td>${esc(p.hora)}</td><td>${esc(p.mesa)}<br>${esc(p.cliente)}</td><td>${esc(p.tipo)}</td><td>${money(p.valor)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhum pagamento nesta data.</div>';
+}
+(function restore(){try{const s=JSON.parse(localStorage.getItem('lanchonete_session'));if(s?.user){currentUser=s.user;currentRole=s.role;enterApp();}}catch(e){localStorage.removeItem('lanchonete_session');}})();
+</script>
+</body>
+</html>
