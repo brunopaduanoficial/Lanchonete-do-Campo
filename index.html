@@ -191,7 +191,7 @@ function renderTables(){
   const t=getOpenTable(num),label=t?`${t.mesa||'Mesa '+num} ${t.cliente||''}`:`Mesa ${num}`;
   if(q&&!label.toLowerCase().includes(q))return;
   const tile=document.createElement('button');tile.className='table-tile '+(t?'busy':'free');
-  tile.innerHTML=`<strong>♧ Mesa ${String(num).padStart(2,'0')}</strong><small>${t?esc(t.cliente||'Ocupada'):'LIVRE'}</small><small>${t?money((Number(t.total)||0)-(Number(t.totalPago)||0)):'Toque para abrir'}</small>`;
+  tile.innerHTML=`<strong> Mesa ${String(num).padStart(2,'0')}</strong><small>${t?esc(t.cliente||'Ocupada'):'LIVRE'}</small><small>${t?money((Number(t.total)||0)-(Number(t.totalPago)||0)):'Toque para abrir'}</small>`;
   tile.onclick=()=>t?openOrder(t._key):openFreeTable(num);
   grid.appendChild(tile);
  });
